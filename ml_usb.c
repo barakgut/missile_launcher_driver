@@ -99,9 +99,11 @@ static ssize_t ml_write(struct file *file, const char *user_buffer, size_t count
 {
 	u8 * buf = NULL;
 	int retval = -ENOMEM;
-	struct usb_device * udev = file->private_data;
+	struct usb_device * udev;
 
-	ML_LOG("Send command 0x%.x to Missile launcher usb device size: %d", user_buffer[0], count);
+	udev = file->private_data;
+
+	ML_LOG("Send command 0x%.x to Missile launcher usb device size: %d", (int)user_buffer[0], (int)count);
 	buf = kzalloc(ML_CTRL_BUFFER_SIZE, GFP_KERNEL);
 
 	if (!file || !user_buffer || count != 1)
@@ -146,9 +148,11 @@ static ssize_t ml_write(struct file *file, const char *user_buffer, size_t count
 
 static int __init ml_usb_init(void)
 {
+	int result;
+
 	ML_LOG("Register Missile launcher USB driver to usbcore");
-	
-	int result = usb_register(&ml_driver);
+
+	result = usb_register(&ml_driver);
 
 	if (result < 0) 
 	{
