@@ -8,7 +8,7 @@
 #define ML_CTRL_BUFFER_SIZE	8
 #define ML_CTRL_REQUEST_TYPE	0x21
 #define ML_CTRL_REQUEST		0x09
-#define ML_CTRL_VALUE		0x0
+#define ML_CTRL_VALUE		0x0200
 #define ML_CTRL_INDEX		0x0
 
 enum ml_cmd_opcode 

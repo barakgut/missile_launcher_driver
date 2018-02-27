@@ -1,17 +1,14 @@
+#include <linux/uaccess.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/usb.h>
 
+#include "ml_usb.h"
+
 #define ML_LOG(fmt, args...) \
 	printk(KERN_INFO "[ML-LOG] %s(%d): " fmt "\n", __FUNCTION__, __LINE__, ##args)
-
-/* Dream Link */
-#define ML_VENDOR_ID	0x1941
-
-/* WH1080 Weather Station / USB Missile Launcher */
-#define ML_PRODUCT_ID	0x8021
 
 static int ml_probe(struct usb_interface *interface, const struct usb_device_id *id);
 static void ml_disconnect(struct usb_interface *interface);
@@ -105,7 +102,13 @@ static ssize_t ml_write(struct file *file, const char *user_buffer, size_t count
 	struct usb_device * udev = file->private_data;
 
 	ML_LOG("Send command 0x%.x to Missile launcher usb device size: %d", user_buffer[0], count);
-	buf = kzalloc(8, GFP_KERNEL);
+	buf = kzalloc(ML_CTRL_BUFFER_SIZE, GFP_KERNEL);
+
+	if (!file || !user_buffer || count != 1)
+	{
+		ML_LOG("Invalid arguments");
+		return retval;
+	}
 
 	if(!buf)
     	{
@@ -113,22 +116,24 @@ static ssize_t ml_write(struct file *file, const char *user_buffer, size_t count
 		return retval;
 	}
 
-	buf[0] = user_buffer[0];
-	buf[1] = 0;
-	buf[2] = 0;
-	buf[3] = 0;
-	buf[4] = 0;
-	buf[5] = 0;
-	buf[6] = 0;
-	buf[7] = 0;
+
+	if (0 != copy_from_user(&buf[0], user_buffer, 1))
+	{
+		ML_LOG("Can't copy buffer from userspace");
+		kfree(buf);
+
+		return retval;
+	}
 	
+	memset(&buf[1], 0, ML_CTRL_BUFFER_SIZE - 1);
+
 	/* Send the data to the device and free the memory. */
 	retval = usb_control_msg(udev,
 		             usb_sndctrlpipe(udev, 0),
-		             0x09,
-		             0x21,
-		             0x0200,
-		             0,
+		             ML_CTRL_REQUEST,
+		             ML_CTRL_REQUEST_TYPE,
+		             ML_CTRL_VALUE,
+		             ML_CTRL_INDEX,
 		             buf,
 		             8,
 		             2000);
